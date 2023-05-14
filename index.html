@@ -1,53 +1,40 @@
 <head>
     <title>Idena IPFS</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 </head>    
 <style>
-.div_center {
+body {
   margin-left: 35%;
   margin-right: 35%;
   margin-top: 1%;
+  background-color: #f1f1f1;
+  color: #1f1f1f;
 }
-.div_all_left {
-    margin-left: 75%;
-    margin-right: 0%;
-    margin-top: 1%;
+button {
+    margin: 5px;
+    border-radius: 5px;
+    padding: 5px;
+    background-color: #f1f1f1;
+    border: 1px solid #1f1f1f;
 }
-.hovertext {
-  position: relative;
-  border-bottom: 1px dotted black;
+input {
+    margin: 5px;
+    border-radius: 5px;
+    /* make look good on mobile */
+    padding: 5px;
+    background-color: #f1f1f1;
+    border: 1px solid #1f1f1f;
+}
+textarea {
+    margin: 5px;
+    border-radius: 5px;
+    /* make look good on mobile */
+    padding: 5px;
+    background-color: #f1f1f1;
+    border: 1px solid #1f1f1f;
 }
 
-.hovertext:before {
-  content: attr(data-hover);
-  visibility: hidden;
-  opacity: 0;
-  width: 140px;
-  background-color: black;
-  color: #fff;
-  text-align: center;top 1s ease-in-out;
-
-  position: absolute;
-  z-index: 1;
-  left: 0;
-  top: 110%;
-}
-
-.hovertext:hover:before {
-  opacity: 1;
-  visibility: visible;
-}
-.notification {
-  position: relative;
-  border-bottom: 1px dotted black;
-
-}
 </style>
 <body onload="init()"></body>
 <div class="div_center">
@@ -72,16 +59,15 @@
         </span>
     </p>
     <button class="btn btn-outline-secondary" onclick="upload()">Upload</button>
-    <p> Created by <a href="https://toni-d-e-v.github.io">toni.dev</a> </p>
-</div>
-<div class="div_all_left">
     <div>
-        <p> Extra stuff </p>
         <input type="text" id="rpc_address" placeholder="rpc address" size="30"/> <button class="btn" onclick="rpc()">set</button></p> 
-        <p> Covert text to bytes without upload. </p>
-        <button class="btn" onclick="convert()">Convert</button>
+        <input type="text" id="api_key" placeholder="api key" size="30"/> <button class="btn" onclick="store_api_key(document.getElementById('api_key').value)">set</button></p>
+        <button class="btn" onclick="convert()">Convert to bytes | no upload</button>
     </div>
 </div>
+
+<h4> Created by <a href="https://toni-d-e-v.github.io">toni.dev</a> </h4>
+
 <script>
     
     function store_rpc_url(url) {
@@ -89,6 +75,12 @@
     }
     function get_rpc_url() {
         return localStorage.getItem("rpc_url");
+    }
+    function store_api_key(key) {
+        localStorage.setItem("api_key", key);
+    }
+    function get_api_key() {
+        return localStorage.getItem("api_key");
     }
     function is_first_time() {
         return localStorage.getItem("first_time") == null;
@@ -107,13 +99,7 @@
     function get_id() {
         return localStorage.getItem("id");
     }
-    function init() {
-        // check if first time
-        if (is_first_time()) {
-            store_first_time();
-            store_rpc_url("https://redstone.crypto.ba:82");
-        }
-    }
+ 
     function byteToHex(byte) {
     const unsignedByte = byte & 0xff;
     if (unsignedByte < 16) {
@@ -145,10 +131,19 @@
         var bytes = toHexString(new TextEncoder().encode(text));
         document.getElementById('bytes').value = "0x" + bytes;
     }
+
     async function upload() {
+        console.log("uploading");
+        if (get_rpc_url() == null) {
+            alert("Please set rpc url");
+            return;
+        }
+        if (get_api_key() == null) {
+            alert("Please set api key");
+            return;
+        }
         convert();
         var bytes = document.getElementById('bytes').value;
-        // link http://redstone.crypto.ba:81/
         console.log(bytes);
         let data = {
             "method": "ipfs_add",
@@ -156,7 +151,8 @@
             "params": [
                 bytes,
                 true
-            ]
+            ],
+            "key": get_api_key()
         }
         let response = await fetch(get_rpc_url(), {
             method: 'POST',
@@ -167,10 +163,11 @@
         });
         let result = await response;
         console.log(result);
-        if (result.json().error) {
+        if (result.json().ok == false) {
             // log Object message
-            alert(result.error.message);
+            alert("Error accessing rpc node, check if rpc url is correct");
         } else {
+        
             store_id(get_id() + 1);
             alert("File uploaded to ipfs with hash: " + "https://ipfs.idena.io/ipfs/" + result.json().result);
         }
