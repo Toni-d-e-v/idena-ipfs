@@ -58,8 +58,14 @@ textarea {
             <i class="fa fa-info"></i>
         </span>
     </p>
+
     <button class="btn btn-outline-secondary" onclick="upload()">Upload</button>
+    </p>
+
+    </p>
+    <input type="text" id="broadcast" placeholder="uploaded file cid" size="30"/> <button class="btn" onclick="broadcast()">Broadcast</button></p>
     <div>
+        <h2>Please use your node!</h2>
         <input type="text" id="rpc_address" placeholder="rpc address" size="30"/> <button class="btn" onclick="rpc()">set</button></p> 
         <input type="text" id="api_key" placeholder="api key" size="30"/> <button class="btn" onclick="store_api_key(document.getElementById('api_key').value)">set</button></p>
         <button class="btn" onclick="convert()">Convert to bytes | no upload</button>
@@ -171,6 +177,62 @@ textarea {
             store_id(get_id() + 1);
             alert("File uploaded to ipfs with hash: " + "https://ipfs.idena.io/ipfs/" + result.json().result);
         }
+    }
+    async function broadcast() {
+        if (get_rpc_url() == null) {
+            alert("Please set rpc url");
+            return;
+        }
+        if (get_api_key() == null) {
+            alert("Please set api key");
+            return;
+        }
+        var cid = document.getElementById('broadcast').value;
+        if (cid == "") {
+            alert("Please input cid");
+            return;
+        }
+
+        // {
+        //     "method": "dna_storeToIpfs",
+        //     "params": [
+        //         {
+        //         "cid": "bafkreicfjmxqcmzqt7yvl6ljpwl3kbkvh2einxpilggbczsx44giha6dua"
+        //         }
+        //     ],
+        //     "id": ...,
+        //     "key": "..."
+        //     }
+
+        let data = {
+            "method": "dna_storeToIpfs",
+            "params": [
+                {
+                "cid": cid
+                }
+            ],
+            "id": get_id(),    
+            "key": get_api_key()
+        }
+        let response = await fetch(get_rpc_url(), {
+            method: 'POST',
+            body: JSON.stringify(data),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        let result = await response;
+        console.log(result);
+        if (result.json().ok == false) {
+            // log Object message
+            alert("Error accessing rpc node, check if rpc url is correct");
+        } else {
+            store_id(get_id() + 1);
+            alert("File broadcasted to idena with txid: " + result.json().result);
+            console.log(result.json().result);
+        }
+
+
     }
 </script>
 
